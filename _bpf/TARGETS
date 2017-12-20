@@ -1,0 +1,40 @@
+# Copyright (c) 2017-present, Facebook, Inc.
+# All rights reserved.
+#
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
+
+python_library(
+    name = "_syscall",
+    srcs = ["_syscall.py"],
+)
+
+python_library(
+    name = "_perf_event",
+    srcs = ["_perf_event.py"],
+)
+
+python_library(
+    name = "_instructions",
+    srcs = ["_instructions.py"],
+)
+
+python_library(
+    name = "_template_jit",
+    srcs = ["_template_jit.py"],
+    deps = [
+        ":_instructions",
+        "@/py2bpf:funcs",  # Only used for isinstance check.
+        "@/py2bpf/_translation:_datastructures",
+        "@/py2bpf/_translation:_translation",
+    ],
+)
+
+python_library(
+    name = "_bpf",
+    deps = [
+        ":_instructions",
+        ":_syscall",
+        ":_template_jit",
+    ],
+)

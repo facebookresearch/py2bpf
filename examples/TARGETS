@@ -1,0 +1,47 @@
+# Copyright (c) 2017-present, Facebook, Inc.
+# All rights reserved.
+#
+# This source code is licensed under the BSD-style license found in the
+# LICENSE file in the root directory of this source tree.
+
+python_binary(
+    name = "blacklist-ingress-ips",
+    srcs = ["blacklist_ingress_ips.py"],
+    main_module = "py2bpf.examples.blacklist_ingress_ips",
+    deps = ["@/py2bpf:py2bpf"],
+)
+
+python_binary(
+    name = "flow-counter",
+    srcs = ["flow_counter.py"],
+    main_module = "py2bpf.examples.flow_counter",
+    deps = ["@/py2bpf:py2bpf"],
+)
+
+python_binary(
+    name = "connect-watcher",
+    srcs = ["connect_watcher.py"],
+    main_module = "py2bpf.examples.connect_watcher",
+    deps = ["@/py2bpf:py2bpf"],
+)
+
+python_binary(
+    name = "stat-watcher",
+    srcs = ["stat_watcher.py"],
+    main_module = "py2bpf.examples.stat_watcher",
+    deps = ["@/py2bpf:py2bpf"],
+)
+
+python_binary(
+    name = "umount-watcher",
+    srcs = ["umount_watcher.py"],
+    main_module = "py2bpf.examples.umount_watcher",
+    deps = ["@/py2bpf:py2bpf"],
+)
+
+python_binary(
+    name = "print-types",
+    srcs = ["print_types.py"],
+    main_module = "py2bpf.examples.print_types",
+    deps = ["@/py2bpf/types:types"],
+)
