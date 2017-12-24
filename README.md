@@ -115,17 +115,14 @@ linux kernel. The following example will simply print out the name of the
 calling program every time a connect is started.
 
 ```
-def on_sys_connect_start(pt_regs):
-    comm = (ctypes.c_char * 16)()
-    py2bpf.funcs.get_current_comm(comm)
-    funcs.trace_printk('on_connect %s', comm)
+@py2bpf.kprobe.probe('sys_nanosleep')
+def watch_nanosleep(pt_regs):
+    return 0
 
-probe = py2bpf.kprobe.BpfKProbe('sys_connect', on_sys_connect_start)
+with watch_nanosleep():
+    # do things
 ```
 
-The log lines will begin to appear in
-`/sys/kernel/debug/tracing/trace_pipe`, presuming that processes are
-calling connect.
 
 ### Traffic Control
 
