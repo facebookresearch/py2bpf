@@ -6,7 +6,6 @@ import py2bpf.datastructures
 import py2bpf.util
 import py2bpf.funcs as funcs
 import py2bpf.kprobe
-from py2bpf.info import program_info
 
 
 def main():
@@ -22,11 +21,12 @@ def main():
 
     @py2bpf.kprobe.probe('do_unlinkat')
     def do_unlinkat(pt_regs):
-        q = unlink_queue.get_cpu_queue(program_info.CPU)
         ev = UnlinkEvent()
         funcs.probe_read(ev.path, pt_regs.rsi)
         funcs.get_current_comm(ev.comm)
-        funcs.perf_event_output(pt_regs, q, 0, ev)
+
+        cpuid = funcs.get_smp_processor_id()
+        funcs.perf_event_output(pt_regs, unlink_queue, cpuid, ev)
         return 0
 
     with do_unlinkat():
