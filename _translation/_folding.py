@@ -39,7 +39,11 @@ def pin_globals_to_consts(src_fn, vis):
             else:
                 raise NameError('name \'{}\' not defined'.format(i.argval))
         elif i.opcode == dis.OpCode.LOAD_DEREF:
-            ret.append(_make_const(i, src_fn.__closure__[i.arg].cell_contents))
+            try:
+                v = src_fn.__closure__[i.arg].cell_contents
+            except ValueError:
+                raise NameError('name \'{}\' not defined'.format(i.argval))
+            ret.append(_make_const(i, v))
         else:
             ret.append(i)
 
