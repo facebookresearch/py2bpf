@@ -509,6 +509,11 @@ def _binary_lshift(i, **kwargs):
 
 @_opcode_translate(dis.OpCode.RETURN_VALUE)
 def _return_value(i, **kwargs):
+    if not issubclass(i.src_vars[0].var_type, _ctypes._SimpleCData):
+        raise TranslationError(
+            i.starts_line, 'Must return int from function. Type is {}'.format(
+                repr(i.src_vars[0].var_type)))
+
     return _mov(i.src_vars[0], bi.Reg.R0) + [bi.Ret()]
 
 
