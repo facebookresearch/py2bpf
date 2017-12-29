@@ -12,6 +12,7 @@ import _ctypes
 import ctypes
 
 import py2bpf.datastructures
+import py2bpf.funcs
 import py2bpf.exception
 from py2bpf._translation import _vars, _dis_plus as dis
 
@@ -175,7 +176,18 @@ def set_dst_var_types(vis, arg_types):
         elif i.opcode == dis.OpCode.DELETE_SUBSCR:
             pass
         elif i.opcode == dis.OpCode.CALL_FUNCTION:
-            update_single_dst(i, ctypes.c_uint64)
+            fn_i = var_setters[i.src_vars[0]]
+            if fn_i.opcode != dis.OpCode.LOAD_CONST:
+                raise TranslationError(
+                    i.starts_line,
+                    'Cannot invoke dynamically selected functions')
+            fn = fn_i.argval
+            if (not isinstance(fn, py2bpf.funcs.PseudoFunc) and
+                    not isinstance(fn, py2bpf.funcs.Func)):
+                raise TranslationError(
+                    i.starts_line,
+                    'Can only invoke py2bpf.funcs.Func or PseudoFunc')
+            update_single_dst(i, fn.return_type)
         else:
             raise py2bpf.exception.TranslationError(
                 i.starts_line,

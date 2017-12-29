@@ -9,20 +9,27 @@
 '''Functions that can be invoked from within bpf programs'''
 
 
+import ctypes
+
+
 class PseudoFunc:
-    def __init__(self, name, num_args):
+    def __init__(self, name, num_args, return_type=ctypes.c_uint64):
         self.name = name
         self.num_args = num_args
+        self.return_type = return_type
 
     def __repr__(self):
         return 'PsuedoFunc({}, {})'.format(self.name, self.num_args)
 
 
 class Func:
-    def __init__(self, name, num, num_args, fill_array_size_args=None):
+    def __init__(self, name, num, num_args,
+                 return_type=ctypes.c_uint64,
+                 fill_array_size_args=None):
         self.name = name
         self.num = num
         self.num_args = num_args
+        self.return_type = return_type
 
         # Some functions take an array pointer followed by its size and
         # that's annoying to specify in python, so we allow ourselves to
