@@ -23,7 +23,11 @@ first pass through a verifier. On some architectures like x86_64, this
 bytecode is then compiled to raw machine code, so it's very low-overhead to
 execute.
 
-## Partial Evaluation
+## How does this work?
+
+There are really three separate steps involved.
+
+## Partial evaluation
 
 Obviously most python functionality is not available within bpf, so we need
 to evaluate as much of the program as we can before handing it off to be
@@ -47,6 +51,62 @@ context where `socket.htons` is not available.
     if socket.ntohs(packet_short) == 12345:
          return 0
 ```
+
+See: `_translation/_folding.py`
+
+### Un-stacking the stack-base virtual machine
+
+First, we have to convert python's stack-based bytecode into one that is
+dealing with discrete variables. This means turning something like this
+
+```
+push(5)
+push(10)
+multiply()
+```
+
+into something that looks more like this
+
+```
+x = 5
+y = 10
+z = multiply(x, y)
+```
+
+Specifically, we're associating all of the instructions with their inputs
+and outputs. Typically, an instruction will have anywhere from zero to
+multiple inputs and a single output, but some instructions will have
+multiple outputs -- `ROT_THREE` transforms swaps the top 3 elements of the
+stack around, so it'll have 3 inputs and 3 outputs.
+
+This gets a little complicated with control flow -- an if/else statement
+gives two potential flows. We normalize this by iterating over every
+possible control path. This works because bpf disallows loops, recursion,
+and other interesting approaches, so we know iterating over every path
+won't be too expensive.
+
+See: `_translation/_vars.py`
+
+### Allocate real space for the variables
+
+In the bpf world, we don't have a magical runtime to store our variables
+for us, so we need to allocate space on the stack for each. We can and
+should take a sophisticated approach wherein we monitor lifetimes and reuse
+stack space, but currently we just use a bump allocator -- we decrementing
+into the stack offset every time we see a new pointer. This will run us out
+of space in theory but hasn't been a problem in practice.
+
+See: `_translation/_stack.py`
+
+### Compiling to bpf
+
+At this point, we've got something that looks a lot more like bpf and a lot
+less like python's stack machine. Now we can translate it to bpf using
+simple templates. For example, if we see something like `return 7`, we'll
+translate it into a `mov` instruction which puts the immediate value `7`
+into the return register `R0`, and then we'll add the `ret` instruction.
+
+See: `_bpf/_template_jit.py`
 
 ## Datastructures
 
