@@ -39,7 +39,7 @@ def _get_kern_version():
     return (int(m.group(1)) << 16) + (int(m.group(2)) << 8) + int(m.group(3))
 
 
-def _load_prog(prog_type, insns_arr):
+def _load_prog(prog_type, insns_arr, insns_to_info):
     log = ctypes.create_string_buffer(2 ** 20)
 
     attr = BpfAttrLoadProg(
@@ -57,7 +57,21 @@ def _load_prog(prog_type, insns_arr):
         BpfCmd.PROG_LOAD, ctypes.pointer(attr), ctypes.sizeof(attr))
     if fd < 0:
         eno = _syscall._get_errno()
-        print(log.value.decode(), file=sys.stderr)
+
+        last_num = None
+        for l in log.value.decode().splitlines():
+            m = re.match('^(\d+): .*', l)
+            if m is not None:
+                num = int(m.group(1))
+                if last_num != num and num in insns_to_info:
+                    last_num = num
+                    if num > 0:
+                        print(file=sys.stderr)
+                    print(insns_to_info[num], file=sys.stderr)
+            print('', l, file=sys.stderr)
+
+        print(file=sys.stderr)
+
         raise OSError(eno, 'Failed to load bpf prog: {}'.format(
             os.strerror(eno)))
 
@@ -73,11 +87,12 @@ class ProgType(enum.IntEnum):
 
 
 class Prog:
-    def __init__(self, prog_type, bpf_insns):
+    def __init__(self, prog_type, bpf_insns, insns_to_info):
         self.prog_type = prog_type
         self.bpf_insns = bpf_insns
         raw_insns = _instructions.convert_to_raw_instructions(bpf_insns)
-        self.fd, self.pretty = _load_prog(self.prog_type, raw_insns)
+        self.fd, self.pretty = _load_prog(
+            self.prog_type, raw_insns, insns_to_info)
 
     def close(self):
         os.close(self.fd)
@@ -89,6 +104,6 @@ def create_prog(prog_type, ctx_type, fn):
 
     verbose = 'PY2BPF_VERBOSE' in os.environ
 
-    bpf_insns = _template_jit.translate(
+    bpf_insns, insns_to_info = _template_jit.translate(
         reg_insns, stack=stack, verbose=verbose)
-    return Prog(prog_type, bpf_insns)
+    return Prog(prog_type, bpf_insns, insns_to_info)

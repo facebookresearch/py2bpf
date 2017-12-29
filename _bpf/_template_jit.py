@@ -744,8 +744,11 @@ def translate(vis, verbose=False, **kwargs):
         if verbose:
             print(*args, **kwargs)
 
+    insns_to_info = {}
+
     ret = _mov(bi.Reg.R1, bi.Reg.R6)
     for i in vis:
+        insns_to_info[len(ret)] = str(i)
         if isinstance(i, _labels.Label):
             new = _label(i)
         else:
@@ -755,4 +758,5 @@ def translate(vis, verbose=False, **kwargs):
         for ni in new:
             verbose_fn('>', ni)
         verbose_fn()
-    return ret
+
+    return ret, insns_to_info
