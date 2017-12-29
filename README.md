@@ -41,6 +41,13 @@ Because `socket.htons(12345)` can be eagerly evaluated to `0x3930`. The
 following *will not* work, because we'd need to evaluate it in the bpf
 context where `socket.htons` is not available.
 
+```
+    packet_short = py2bpf.funcs.load_skb_short(24)
+    # DOES NOT WORK!!!
+    if socket.ntohs(packet_short) == 12345:
+         return 0
+```
+
 ## Datastructures
 
 py2bpf supports native bpf datastructures like map. These datastructures
@@ -59,8 +66,27 @@ In the above example, you could reference the result from other python
 functions with something like.
 
 ```
-for proto, count in m:
-    print('{} => {}'.format())
+for proto, count in m.items():
+    print('{} => {}'.format(proto, count))
+```
+
+You can also use bpf perf queues.
+
+```
+q = py2bpf.datastructures.BpfQueue(ctypes.c_int)
+
+@py2bpf.kprobe.probe('sys_close')
+def on_sys_close(pt_regs):
+    pid = py2bpf.funcs.get_current_pid_tgid() & 0xfffffff
+    ptr = py2bpf.funcs.addrof(pid)
+    cpuid = py2bpf.funcs.get_smp_processor_id()
+    py2bpf.funcs.perf_event_output(pt_regs, q, cpuid, ptr)
+    return 0
+
+
+with on_sys_close():
+    for pid in q:
+        print('pid={}'.format(pid))
 ```
 
 ## Helpers
