@@ -62,7 +62,6 @@ get_stackid = Func('get_stackid', 27, 3)
 
 addrof = PseudoFunc('addrof', 1)
 memcpy = PseudoFunc('memcpy', 3)
-ptr = PseudoFunc('ptr', 1)
 packet_copy = PseudoFunc('packet_copy', 4)
 
 load_skb_byte = PseudoFunc('load_skb_byte', 2)
@@ -70,3 +69,8 @@ load_skb_short = PseudoFunc('load_skb_short', 2)
 load_skb_word = PseudoFunc('load_skb_word', 2)
 
 mem_eq = PseudoFunc('mem_eq', 2)
+
+deref_u8 = PseudoFunc('deref', 1, ctypes.c_uint8)
+deref_u16 = PseudoFunc('deref', 1, ctypes.c_uint16)
+deref_u32 = PseudoFunc('deref', 1, ctypes.c_uint32)
+deref_u64 = PseudoFunc('deref', 1, ctypes.c_uint64)

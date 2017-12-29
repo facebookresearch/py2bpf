@@ -285,6 +285,12 @@ def _call_ptr(i, **kwargs):
     return _mov(i.src_vars[1], i.dst_vars[0])
 
 
+def _call_deref(i, **kwargs):
+    sz = _get_cdata_size(i.dst_vars[0].var_type)
+    return (_mov(i.src_vars[1], bi.Reg.R0) +
+            _mov(bi.Mem(bi.Reg.R0, 0, sz), i.dst_vars[0]))
+
+
 def _call_mem_eq(i, **kwargs):
     if (not isinstance(i.src_vars[1], _mem.ConstVar) or
             not issubclass(i.src_vars[1].var_type, ctypes.Array)):
@@ -322,6 +328,8 @@ def _call_pseudo_function(i, **kwargs):
         return _call_addrof(i, **kwargs)
     elif fn.name == 'ptr':
         return _call_ptr(i, **kwargs)
+    elif fn.name == 'deref':
+        return _call_deref(i, **kwargs)
     elif fn.name == 'packet_copy':
         return _call_packet_copy(i, **kwargs)
     elif fn.name == 'load_skb_byte':
