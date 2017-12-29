@@ -25,36 +25,9 @@ execute.
 
 ## How does this work?
 
-There are really three separate steps involved.
+See: `_translation/_translate.py`
 
-## Partial evaluation
-
-Obviously most python functionality is not available within bpf, so we need
-to evaluate as much of the program as we can before handing it off to be
-switched. To do, we convert all global loads and dereferences into
-constants and then evaluate things as far down the line as we can. As a
-result, the following would be permitted:
-
-```
-    packet_short = py2bpf.funcs.load_skb_short(24)
-    if packet_short == socket.htons(12345):
-         return 0
-```
-
-Because `socket.htons(12345)` can be eagerly evaluated to `0x3930`. The
-following *will not* work, because we'd need to evaluate it in the bpf
-context where `socket.htons` is not available.
-
-```
-    packet_short = py2bpf.funcs.load_skb_short(24)
-    # DOES NOT WORK!!!
-    if socket.ntohs(packet_short) == 12345:
-         return 0
-```
-
-See: `_translation/_folding.py`
-
-### Un-stacking the stack-base virtual machine
+### 1. Un-stacking the stack-base virtual machine
 
 First, we have to convert python's stack-based bytecode into one that is
 dealing with discrete variables. This means turning something like this
@@ -87,7 +60,34 @@ won't be too expensive.
 
 See: `_translation/_vars.py`
 
-### Allocate real space for the variables
+### 2. Partial evaluation
+
+Obviously most python functionality is not available within bpf, so we need
+to evaluate as much of the program as we can before handing it off to be
+switched. To do, we convert all global loads and dereferences into
+constants and then evaluate things as far down the line as we can. As a
+result, the following would be permitted:
+
+```
+    packet_short = py2bpf.funcs.load_skb_short(24)
+    if packet_short == socket.htons(12345):
+         return 0
+```
+
+Because `socket.htons(12345)` can be eagerly evaluated to `0x3930`. The
+following *will not* work, because we'd need to evaluate it in the bpf
+context where `socket.htons` is not available.
+
+```
+    packet_short = py2bpf.funcs.load_skb_short(24)
+    # DOES NOT WORK!!!
+    if socket.ntohs(packet_short) == 12345:
+         return 0
+```
+
+See: `_translation/_folding.py`
+
+### 3. Allocate real space for the variables
 
 In the bpf world, we don't have a magical runtime to store our variables
 for us, so we need to allocate space on the stack for each. We can and
@@ -98,7 +98,7 @@ of space in theory but hasn't been a problem in practice.
 
 See: `_translation/_stack.py`
 
-### Compiling to bpf
+### 4. Compiling to bpf
 
 At this point, we've got something that looks a lot more like bpf and a lot
 less like python's stack machine. Now we can translate it to bpf using
