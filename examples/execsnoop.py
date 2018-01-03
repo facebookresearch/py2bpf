@@ -12,7 +12,6 @@ import ctypes
 import py2bpf.util
 import py2bpf.funcs as funcs
 import py2bpf.kprobe
-import py2bpf.info
 
 class Call(ctypes.Structure):
     _fields_ = [

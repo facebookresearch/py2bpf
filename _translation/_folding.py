@@ -14,7 +14,6 @@ import collections
 import ctypes
 import py2bpf.datastructures
 import py2bpf.funcs
-import py2bpf.info
 from py2bpf._translation import _vars, _dis_plus as dis
 
 
