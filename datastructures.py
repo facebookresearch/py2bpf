@@ -308,6 +308,7 @@ class PerfQueue:
     def __init__(self, data_type, cpu, num_pages=9):
         self.mm_fd = -1
         self.data_type = data_type
+        self.num_pages = num_pages
 
         try:
             attr = pe.PerfEventAttr()
@@ -322,7 +323,7 @@ class PerfQueue:
 
             fcntl.ioctl(self.mm_fd, pe.PERF_EVENT_IOC_ENABLE, 0)
             self.pagesz = resource.getpagesize()
-            self.mm = mmap.mmap(self.mm_fd, num_pages * self.pagesz)
+            self.mm = mmap.mmap(self.mm_fd, self.num_pages * self.pagesz)
         except Exception:
             self.close()
             raise
@@ -358,15 +359,33 @@ class PerfQueue:
 
         items = []
         page = pe.PerfEventMmapPage.from_buffer(self.mm)
-        begin, end = page.data_tail + self.pagesz, page.data_head + self.pagesz
+
+        data_size = (self.num_pages - 1) * self.pagesz
+        begin, end = page.data_tail % data_size, page.data_head % data_size
+
         while begin != end:
-            header = pe.PerfEventHeader.from_buffer(self.mm, begin)
+            data_left = data_size - begin
+
+            header = pe.PerfEventHeader.from_buffer_copy(
+                self.mm, begin + self.pagesz)
+
             if header.type == pe.PERF_RECORD_SAMPLE:
-                s = Sample.from_buffer(self.mm, begin)
+                if data_left < header.size:
+                    self.mm.seek(begin + self.pagesz)
+                    data = self.mm.read(data_left)
+                    self.mm.seek(self.pagesz)
+                    data += self.mm.read(header.size - data_left)
+                    self.mm.seek(0)
+                    s = Sample.from_buffer_copy(data)
+                else:
+                    s = Sample.from_buffer_copy(self.mm, begin + self.pagesz)
                 items.append(s.data)
             elif header.type == pe.PERF_RECORD_LOST:
                 print('lost')
-            begin += header.size
+            else:
+                assert False
+
+            begin = (begin + header.size) % data_size
 
         page.data_tail = page.data_head
 
